@@ -31,47 +31,37 @@
 #any char -> q0
 ####
 def regexAB(inputString: str):
-    def recursiveCheck(state=1, index=0): #states 1-4, let x : x is a member of any alphabet, and x is not 'b' or 'a'
-        print(state, index, len(inputString))
+    def recursiveCheck(state=1, index=0): #states 1-4
         if len(inputString) > index:
             match state: #case 0 is not used as it could cause confusion
                 case 1:#q1, a/x -> -q1, b -> q2
                     if inputString[index] == 'b':
                         state = 2
                     else:
-                        state = -1
-                    index += 1
-                    return recursiveCheck(state, index)
+                        return -1
+                    return recursiveCheck(state, index+1)
                     
                 case 2:#q2, a -> q3, b -> q2, x -> -q1
                     if inputString[index] == 'a':
                         state = 3
-                    elif inputString[index] == 'b':
-                        state = state
-                    else:
-                        state = -1
-                    index += 1
-                    return recursiveCheck(state, index)
+                    elif inputString[index] != 'b': #if b -> state = state
+                        return -1
+                    return recursiveCheck(state, index+1)
 
                 case 3:#q3, a/x -> -q1, b -> q4 
                     if inputString[index] == 'b':
                         state = 4
                     else:
-                        state = -1
-                    index +=1
-                    return recursiveCheck(state, index)
+                        return -1
+                    return recursiveCheck(state, index+1)
                 case 4:#q4, a -> q3, b -> 4, x -> -q1,  case 4 = accepted state
                     if inputString[index] == 'b':
                         state = 4
                     elif inputString[index] == 'a':
                         state = 3
                     else:
-                        state = -1
-                    index += 1
-                    return recursiveCheck(state, index)
-                case -1:#-q1, a/b/x -> -q1, fail state, string is not accepted
-                    index += 1
-                    return recursiveCheck(state, index)
+                        return -1
+                    return recursiveCheck(state, index+1)
         else:
             return state
         
