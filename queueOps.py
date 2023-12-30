@@ -1,102 +1,99 @@
-class QueueObj():
+class QueueObj():#standard FIFO queue (retrieve first object in queue)
     def __init__(self, maxsize=None):
             self.queue = []
             self.maxsize = maxsize
 
-    def add(self, item):
+    def add(self, item):#add to end of queue
         if(self.maxsize is None or (len(self.queue) < self.maxsize)):
             self.queue.append(item)
         else:
             raise ValueError("Queue be full")
             
-    def get(self):
+    def get(self):#FIFO get from queue
         if(len(self.queue) > 0):
             item = self.queue[0]
             self.queue.pop(0)
             return item
         
-    def lifo_get(self):
-        if(len(self.queue) > 0):
-            lastIndex = len(self.queue)-1
-            item = self.queue[lastIndex]
-            self.queue.pop(lastIndex)
-            return item
-        
-    def queue(self):
+    def queue(self):#for viewing the entire queue
         return self.queue
     
-    def is_full(self):
-        if(len(self.queue) < self.maxsize):
+    def is_full(self):#useful for figuring out if queue is full without raising errors
+        if(self.maxsize is not None and len(self.queue) < self.maxsize):
             return False
         else:
             return True
     
-    def is_empty(self):
+    def is_empty(self):#useful for figuring out if queue is empty without raising errors
         if(len(self.queue) > 0):
             return False
         else:
             return True
     
-class LifoQueueObj(QueueObj):
+class LifoQueueObj(QueueObj):#LIFO queue, inherits standard queue's methods (retrieves queue's last object first)
     def __init__(self, maxsize=None):
-            self.queue = []
-            super().__init__(maxsize)
+            super().__init__(maxsize)#initialize QueueObj and receive access to methods
 
-    def get(self):
+    def get(self):#override QueueObj's get method to change it from FIFO to LIFO instead
         if(len(self.queue) > 0):
-            lastIndex = len(self.queue)-1
-            item = self.queue[lastIndex]
-            self.queue.pop(lastIndex)
+            item = self.queue[-1]
+            self.queue.pop(-1)
             return item
 
-class PriorityQueueObj(QueueObj):
+class PriorityQueueObj(QueueObj):#inherits standard queue's methods (retrieves obj based on highest/desired priority)
     def __init__(self, maxsize=None):
-            self.queue = []
-            super().__init__(maxsize)
+        super().__init__(maxsize)#initialize QueueObj
 
-    def add(self, item, priority_num=None):
-        if not priority_num:
-            priority_num = len(self.queue)
-        
-        def _sortQueue(queue):
+    def add(self, item, priority_num=None):#override QueueObj's add to be priority oriented
+        def _next_available_priority_num(q):#find highest available priority number
+            priority_num = 0
+            while q:
+                if priority_num < q[0][1]:
+                    priority_num = q[0][1] + 1
+                q.pop(0)
+            return priority_num
+        def _sort_queue():#sort queue from highest to lowest priorities
                 lower_priorities = []
                 higher_priorities = []
 
-                while queue:#empty out queue while storing values
+                while self.queue:#empty out queue while storing values
                     #newest value gets sorted automatically
-                    if queue[0][0] > priority_num :#store lower priority values
-                        lower_priorities.append(queue[0])
+                    if self.queue[0][1] > priority_num :#store lower priority values
+                        lower_priorities.append(self.queue[0])
                     else:#store higher priority values
-                        higher_priorities.append(queue[0])
-                    queue.pop(0)
+                        higher_priorities.append(self.queue[0])
+                    self.queue.pop(0)
                 while higher_priorities:#add back the highest priority values
-                    queue.append(higher_priorities[0])
+                    self.queue.append(higher_priorities[0])
                     higher_priorities.pop(0)
                 while lower_priorities:#add back the lowest priority values
-                    queue.append(lower_priorities[0])
+                    self.queue.append(lower_priorities[0])
                     lower_priorities.pop(0)
-            
-        if(self.maxsize is None or (len(self.queue) < self.maxsize)):
-            #given priority_num cannot be already taken
-            if(any(num[0] == priority_num for num in self.queue)):
-                raise ValueError("Priority value already reserved")               
-            self.queue.append((priority_num, item))
+        if(self.maxsize is None or (len(self.queue) < self.maxsize)):#either queue has no size limit or limit has yet to be reached
+            if priority_num is None:
+                if self.queue:
+                    priority_num = _next_available_priority_num(self.queue.copy())#put behind lowest priority
+                else:
+                    priority_num = 0
+            elif(any(num[1] == priority_num for num in self.queue)):#if priority num is given, it cannot already be taken 
+                raise ValueError(f"Priority value '{priority_num}' already reserved")    
+            self.queue.append((item, priority_num))
 
-            if(len(self.queue) > 1):
-                _sortQueue(self.queue)
+            if(len(self.queue) > 1):#no point in sorting a single item
+                _sort_queue()
         else:
             raise ValueError("Queue be full")
     
-    def get(self, priority_num=None):
+    def get(self, priority_num=None):#override QueueObj's FIFO get, to get either highest priority or based on given priority
         if len(self.queue) > 0:
-            items_tmp = []
             if not priority_num: #return highest priority value (already sorted)
                 item = self.queue[0]
                 self.queue.pop(0)
             else:
-                while self.queue:#find elem based on priority number
+                items_tmp = []
+                while self.queue:#find item based on priority number
                     item = self.queue[0]
-                    if priority_num == item[0]:
+                    if priority_num == item[1]:
                         break
                     items_tmp.append(item)
                     self.queue.pop(0)
@@ -105,39 +102,38 @@ class PriorityQueueObj(QueueObj):
                     item_tmp, priority = items_tmp[0]
                     self.add(item_tmp,priority_num=priority)
                     items_tmp.pop(0)
-
-            return item[1]
+                    
+            return item[0]
         else:
             raise ValueError("Queue has no items")
   
-def swap_with_front(normal_queue, n: int):
+def swap_with_front(J, n: int):#swap n and n-1 values
     if(n > 0):
         ind = 0
-        queue_items = []
+        q_items = []
         item = None
-        while normal_queue.queue:
-            if ind == n-1:
-                item = normal_queue.queue[0]
-                normal_queue.queue.pop(0)
+        while J.queue:
+            if ind == n-1:#if 1 away from nth item, then store it
+                item = J.queue[0]
+                J.queue.pop(0)
                 ind += 1
-
-            queue_items.append(normal_queue.queue[0])
-            if item is not None:
-                queue_items.append(item)
+            q_items.append(J.queue[0])
+            if item is not None:#after nth item is added, then add n-1 back
+                q_items.append(item)
                 item = None
-            normal_queue.queue.pop(0)
+            J.queue.pop(0)
             ind += 1
 
-        while queue_items:
-            normal_queue.add(queue_items[0])
-            queue_items.pop(0)
-        return normal_queue
+        while q_items:#re-populate original queue
+            J.add(q_items[0])
+            q_items.pop(0)
     else:
         raise ValueError("No item to swap with")
 
-def lifo_fifo_queue_print(inp_queue):
+def lifo_fifo_queue_print(inp_queue):#used for testing and printing out results from FIFO and LIFO queues' methods 
     print("Queue:",inp_queue.queue)
     swap_with_front(inp_queue, 2)
+    print(f"State of queue post swap: {inp_queue.queue}")
     swap_with_front(inp_queue, 1)
     print(f"State of queue post swap: {inp_queue.queue}")
     print(f"Queue get: {inp_queue.get()}")
@@ -152,12 +148,13 @@ def lifo_fifo_queue_print(inp_queue):
 
 
 if __name__ == '__main__':
+
     #FIFO queue
     fifo_queue = QueueObj(maxsize=5)
 
     fifo_queue.add("hello")
     fifo_queue.add([])
-    fifo_queue.add((1,3,"4"))
+    fifo_queue.add((1,3.53,"4"))
     fifo_queue.add("lol")
 
     print("FIFO queue:")
@@ -165,7 +162,7 @@ if __name__ == '__main__':
     print("\n")
 
     #LIFO queue
-    lifo_queue = LifoQueueObj(maxsize=7)
+    lifo_queue = LifoQueueObj()
 
     lifo_queue.add({})
     lifo_queue.add([{}])
@@ -174,25 +171,27 @@ if __name__ == '__main__':
 
     print("LIFO queue:")
     lifo_fifo_queue_print(lifo_queue)
+    print("\n")
 
     #priority queue
     priority_queue = PriorityQueueObj(maxsize=7)
 
-    priority_queue.add(1, priority_num=7)
-    priority_queue.add(35, priority_num=3)
-    priority_queue.add(3, priority_num=5)
-    priority_queue.add(4, priority_num=4)
-    priority_queue.add(6, priority_num=12)
-    priority_queue.add(219, priority_num=8)
-    #priority_queue.add(219, priority_num=8)
+    priority_queue.add(3)
+    priority_queue.add([[1,2]], priority_num=7)
+    priority_queue.add({}, priority_num=3)
+    priority_queue.add(4.124)
+    priority_queue.add("wello", priority_num=12)
+    priority_queue.add(219, priority_num=10)
+    #priority_queue.add(219, priority_num=10)
     priority_queue.add(21, priority_num=2)
     print(f"Full check: {priority_queue.is_full()}")
 
-    print("\nPriority Queue:",priority_queue.queue)
-    print(f"Priority Queue get: Highest Priority: {priority_queue.get()}, Specific Priority (7): {priority_queue.get(7)}")
+    print("Priority Queue:",priority_queue.queue)
+    print(f"Priority Queue get: Highest Priority Object: {priority_queue.get()}, Specific Priority (7): {priority_queue.get(7)}")
     print(f"Final priority queue: {priority_queue.queue}, Full check: {priority_queue.is_full()}, Empty check: {priority_queue.is_empty()}")
     
     while not priority_queue.is_empty():
         priority_queue.get()
-    print(f"Empty priority queue: {priority_queue}, Full check: {priority_queue.is_full()}, Empty check: {priority_queue.is_empty()}\n")
+    print(f"Empty priority queue: {priority_queue.queue}, Full check: {priority_queue.is_full()}, Empty check: {priority_queue.is_empty()}\n")
     
+
